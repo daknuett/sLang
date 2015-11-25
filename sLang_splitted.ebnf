@@ -1,0 +1,48 @@
+(* startvariable ist program  *)
+program = function {variable}  {function} ;
+function = Function datatype name ParenthesisOpen [ datatype name {Comma datatype name} ] ParenthesisClose block;
+
+variable = datatype name [ [ operator ] Equ  arithmethicExpression] SemiColon
+
+name = Chr { (Chr|int) };
+
+
+int = nmbr| nmbr int;
+
+
+block = CurOpen [ blockContent ] CurClose;
+blockContent = [blockContent] (statement|block);
+statement = strucure | ( [ datatype ] name [operator] Equ ( arithmethicExpression | expression )  ) SemiColon | expression SemiColon | Return[ name ]SemiColon ;
+
+arithmethicExpression = ( name | int | expression ) [ term ];
+
+term = operator ( name | int | expression ) [ term ];
+
+strucure = ( While ParenthesisOpen (arithmethicExpression|expression) ParenthesisClose block ) | ( If ParenthesisOpen (arithmethicExpression|expression) ParenthesisClose block [ Else block ] );
+
+(* zb i++; *)
+
+expression = (name (Inc|Dec) )| functioncall ;
+functioncall = name ParenthesisOpen [name { Comma name}] ParenthesisClose;
+
+(* alle Token  *)
+
+ParenthesisOpen = "(";
+ParenthesisClose = ")";
+Chr = "A"|...|"z"|"_";
+Nmbr = "0"|...|"9";
+Operator = "+"|"-"|"*"|"/"|"&"|"^"|"|";
+Function = "function ";
+Return = "return";
+While = "while";
+If = "if";
+Else = "else";
+Datatype = "int"|"char"|"ptr"|"void";
+
+Inc = "++";
+Dec = "--";
+Comma = ",";
+CurOpen = "{";
+CurClose = "}";
+SemiColon = ";" ;
+Equ = "=";

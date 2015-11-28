@@ -1,5 +1,3 @@
 package slang.parser;
 
-public interface Statement	{
-
-}
+public interface Statement	{}

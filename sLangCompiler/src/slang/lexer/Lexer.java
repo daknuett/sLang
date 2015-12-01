@@ -1,5 +1,7 @@
 package slang.lexer;
 
+import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -16,7 +18,7 @@ public class Lexer
 		this.program = new StringBuilder(program);
 	}
 
-	public SortedSet<Token> lex()
+	public LinkedList<Token> lex()
 	{
 		System.out.println(program);
 
@@ -50,7 +52,48 @@ public class Lexer
 			System.out.println(t);
 		}
 
+		
+		System.out.println("\n\n");
+		
+		LinkedList<Token> tmp = mergeTokenParts();
+		
+		for(Token t : tmp)
+		{
+			System.out.println(t);
+		}
+		
+		return tmp;
+	}
+	
+	private LinkedList<Token> mergeTokenParts()
+	{
+		LinkedList<Token> tokens = new LinkedList<Token>(this.tokens);
+		
+		Token current;
+		Token last = new Token("", TokenType.APOSTROPHE, -1);	//just some irrelevant type
+		ListIterator<Token> iterator = tokens.listIterator();
+		while(iterator.hasNext())
+		{
+			current = iterator.next();
+			if(current.getType().isCritical() && last.getType().isCritical())
+			{
+				current = replace(last, current, iterator, current.getType() == TokenType.NUMBER && last.getType() == TokenType.NUMBER ? TokenType.NUMBER : TokenType.NAME);
+			}			
+			last = current;
+		}
+		
 		return tokens;
+	}
+	
+	private Token replace(Token first, Token second, ListIterator<Token> iterator, TokenType type)
+	{
+		iterator.previous();
+		iterator.previous();
+		iterator.remove();
+		iterator.next();
+		Token newToken = new Token(first.getRepresentation() + second.getRepresentation(), type, first.getPos());
+		iterator.set(newToken);
+		return newToken;
 	}
 
 	private void filterNames()

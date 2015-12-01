@@ -1,5 +1,5 @@
 /* startfunction */
-#define __ASM__NOP  __ASM__('NOP')
+#define __ASM__NOP  __ASM__("NOP")
 #define __local
 function void start()
 {
@@ -36,13 +36,13 @@ function int foo(int arg1)
 function void HW_PR(int arg)
 {
 	/* inline assembler muss wegen hardware access sein */
-	__ASM__('mov arg r0');
-	__ASM__('ldi 04 SFR');
+	__ASM__("mov arg r0");
+	__ASM__("ldi 04 SFR");
 	return;
 }
 
 function void halt()
 {
-	__ASM__('ldi ff SFR');
+	__ASM__("ldi ff SFR");
 	return;
 }

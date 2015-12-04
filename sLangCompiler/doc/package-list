@@ -1,0 +1,8 @@
+slang
+slang.lexer
+slang.parser
+slang.parser.literals
+slang.parser.statements
+slang.parser.statements.expressionstats
+slang.parser.statements.parts
+slang.parser.statements.structures

@@ -5,17 +5,31 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.LinkedList;
 
 import slang.lexer.Lexer;
+import slang.lexer.Token;
+import slang.parser.Program;
+import slang.parser.SyntaxErrorException;
 
 
 public class Start
-{
+{	
 	public static void main(String... args)
 	{
 		String program = readFile();
 		Lexer lexer = new Lexer(program);
-		lexer.lex();
+		LinkedList<Token> tokens = lexer.lex();
+		try
+		{
+			Program p = Program.build(tokens.listIterator());
+			System.out.println(p);
+			
+		} catch(SyntaxErrorException e)
+		{
+			e.printStackTrace();
+			System.err.println(e.getMessage() + " at " + e.getPos());
+		}
 	}
 
 	private static String readFile()

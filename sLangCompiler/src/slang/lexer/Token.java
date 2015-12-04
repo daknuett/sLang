@@ -59,4 +59,9 @@ public class Token implements Comparable<Token>
 	{
 		return this.pos == ((Token) o).pos;
 	}
+
+	public int getLinePos()	//TODO
+	{
+		return 0;
+	}
 }

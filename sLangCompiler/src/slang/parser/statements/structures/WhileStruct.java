@@ -7,7 +7,7 @@ import slang.lexer.Token;
 import slang.lexer.TokenType;
 import slang.parser.Statement;
 import slang.parser.StatementBuilder;
-import slang.parser.SyntaxErrorException;
+import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.Structure;
 import slang.parser.statements.parts.Expression;
 
@@ -51,5 +51,11 @@ public class WhileStruct extends Structure
 	public Statement getBody()
 	{
 		return body;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "while " + condition + " is 0 repeat\n" + body;
 	}
 }

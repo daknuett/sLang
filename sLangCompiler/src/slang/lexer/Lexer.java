@@ -30,7 +30,9 @@ public class Lexer
 		filterToken(TokenType.RETURN);
 		filterToken(TokenType.VOID);
 		filterToken(TokenType.APOSTROPHE);
+		filterToken(TokenType.SHORT_ASSIGN_OPERATOR);
 		filterToken(TokenType.ASSIGN_OPERATOR);
+		filterToken(TokenType.UN_OPERATOR);
 		filterToken(TokenType.BIN_OPERATOR);
 		filterToken(TokenType.BLOCK_CLOSE);
 		filterToken(TokenType.BLOCK_OPEN);
@@ -38,20 +40,10 @@ public class Lexer
 		filterToken(TokenType.BRACKET_OPEN);
 		filterToken(TokenType.KOMMA);
 		filterToken(TokenType.SEMICOLON);
-		filterToken(TokenType.SHORT_ASSIGN_OPERATOR);
-		filterToken(TokenType.UN_OPERATOR);
 		filterToken(TokenType.NUMBER);
 
 		filterWhitespaces();
 		filterNames();
-
-		System.out.println(program + "\n\n");
-
-		for(Token t : tokens)
-		{
-			System.out.println(t);
-		}
-
 		
 		System.out.println("\n\n");
 		
@@ -70,15 +62,24 @@ public class Lexer
 		LinkedList<Token> tokens = new LinkedList<Token>(this.tokens);
 		
 		Token current;
-		Token last = new Token("", TokenType.APOSTROPHE, -1);	//just some irrelevant type
+		Token last = new Token("", TokenType.KOMMA, -1);
 		ListIterator<Token> iterator = tokens.listIterator();
+		boolean isCharacterString = false;
 		while(iterator.hasNext())
 		{
 			current = iterator.next();
+			
+			if(current.getType() == TokenType.APOSTROPHE)
+				isCharacterString = !isCharacterString;
+			
 			if(current.getType().isCritical() && last.getType().isCritical())
 			{
 				current = replace(last, current, iterator, current.getType() == TokenType.NUMBER && last.getType() == TokenType.NUMBER ? TokenType.NUMBER : TokenType.NAME);
-			}			
+			}
+			else if(current.getType() == TokenType.WHITESPACE && !isCharacterString)
+			{
+				iterator.remove();
+			}	
 			last = current;
 		}
 		

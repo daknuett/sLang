@@ -7,8 +7,10 @@ import java.util.ListIterator;
 import slang.lexer.Token;
 import slang.lexer.TokenType;
 import slang.parser.Function;
+import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.VariableDeclaration;
 import slang.parser.statements.expressionstats.Assignment;
+import slang.parser.statements.expressionstats.Functioncall;
 
 
 public class Program
@@ -78,6 +80,31 @@ public class Program
 		{
 			throw new SyntaxErrorException("Unexpected ending", tokens.previous().getLinePos());
 		}
+		
+		afterWorks();
+		
 		return p;
+	}
+	
+	private static void afterWorks() throws SyntaxErrorException
+	{
+		Functioncall.checkForFunctionExistance();		
+	}
+	
+	@Override
+	public String toString()
+	{
+		StringBuilder str = new StringBuilder();
+		
+		for(VariableDeclaration v : decls)
+			str.append(v + "\n");
+		
+		for(Assignment a : assignments)
+			str.append(a + "\n");
+		
+		for(Function f : functions)
+			str.append(f + "\n");
+		
+		return str.toString();
 	}
 }

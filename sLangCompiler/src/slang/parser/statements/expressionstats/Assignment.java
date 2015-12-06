@@ -5,8 +5,8 @@ import java.util.ListIterator;
 
 import slang.lexer.Token;
 import slang.lexer.TokenType;
-import slang.parser.SyntaxErrorException;
 import slang.parser.Variable;
+import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.ExpressionStatement;
 import slang.parser.statements.parts.Expression;
 
@@ -54,7 +54,7 @@ public class Assignment implements ExpressionStatement
 	public static Assignment build(ListIterator<Token> tokens, Variable target, boolean shortAllowed) throws ParseException, SyntaxErrorException
 	{
 		Token first = tokens.next();
-		boolean isShortAssign = first.getType() != TokenType.SHORT_ASSIGN_OPERATOR;
+		boolean isShortAssign = first.getType() == TokenType.SHORT_ASSIGN_OPERATOR;
 		if(!shortAllowed && isShortAssign)
 			throw new SyntaxErrorException(first.getRepresentation() + " is no allowed here", first.getLinePos());
 		if(first.getType() != TokenType.ASSIGN_OPERATOR && !isShortAssign)
@@ -63,5 +63,11 @@ public class Assignment implements ExpressionStatement
 		Expression value = Expression.build(tokens);
 
 		return new Assignment(target, value);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return target + " = " + value;
 	}
 }

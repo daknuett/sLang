@@ -8,8 +8,10 @@ import slang.lexer.Token;
 import slang.lexer.TokenType;
 import slang.parser.Statement;
 import slang.parser.StatementBuilder;
-import slang.parser.SyntaxErrorException;
 import slang.parser.Utilities;
+import slang.parser.Variable;
+import slang.parser.exceptions.DeclInitException;
+import slang.parser.exceptions.SyntaxErrorException;
 
 public class Block implements Statement
 {
@@ -27,11 +29,15 @@ public class Block implements Statement
 	private int blockNumber;
 	private Block upper;
 	
-	private Block() {}
+	private Block() 
+	{
+		blockNumber = maxBlockNumber++;
+		Variable.joinBlock(this);
+	}
 	
 	public Block(Block upper)
 	{
-		blockNumber = maxBlockNumber++;
+		this();
 		this.upper = upper;
 	}
 	
@@ -49,9 +55,16 @@ public class Block implements Statement
 			{
 				indexBefore = tokens.nextIndex();
 				statements.add(VariableDeclaration.build(tokens));
+				paramCount++;
 				Token komma = tokens.next();
 				if(komma.getType() != TokenType.KOMMA)
-					throw new SyntaxErrorException(", expected", komma.getLinePos());
+					if(komma.getType() == TokenType.BRACKET_CLOSE)
+					{
+						tokens.previous();
+						break;
+					}
+					else
+						throw new SyntaxErrorException(", expected", komma.getLinePos());
 			}
 		}
 		catch(ParseException e)
@@ -74,7 +87,15 @@ public class Block implements Statement
 			while(true)
 			{
 				indexBefore = tokens.nextIndex();
-				statements.add(StatementBuilder.build(tokens));
+				try
+				{
+					statements.add(StatementBuilder.build(tokens));					
+				}
+				catch(DeclInitException e)
+				{
+					statements.add(e.getDeclaration());
+					statements.add(e.getInitilization());
+				}
 			}
 		}
 		catch(ParseException e)
@@ -82,6 +103,9 @@ public class Block implements Statement
 			Utilities.gotoIndex(tokens, indexBefore);
 		}
 		
+		Token second = tokens.next();
+		if(second.getType() != TokenType.BLOCK_CLOSE)
+			throw new SyntaxErrorException("} expected", second.getLinePos());
 	}
 	
 	public Statement[] getStatements()
@@ -101,6 +125,34 @@ public class Block implements Statement
 
 	public boolean isVisibleIn(Block currentBlock)	//TODO
 	{
-		return false;
+		return true;
+	}
+	
+	@Override
+	public String toString()
+	{
+		StringBuilder str = new StringBuilder();
+		
+		str.append(blockNumber + "{\n");
+		
+		for(Statement s : statements)
+		{
+			str.append(s + "\n");
+		}
+		
+		str.append("\n" + blockNumber + "}");
+		
+		return str.toString();
+	}
+
+	public void delete()
+	{
+		maxBlockNumber--;
+		leave();
+	}
+	
+	public void leave()
+	{		
+		Variable.joinBlock(upper);
 	}
 }

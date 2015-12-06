@@ -1,6 +1,7 @@
 slang
 slang.lexer
 slang.parser
+slang.parser.exceptions
 slang.parser.literals
 slang.parser.statements
 slang.parser.statements.expressionstats

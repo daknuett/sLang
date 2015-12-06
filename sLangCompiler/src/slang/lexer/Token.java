@@ -62,6 +62,6 @@ public class Token implements Comparable<Token>
 
 	public int getLinePos()	//TODO
 	{
-		return 0;
+		return pos;
 	}
 }

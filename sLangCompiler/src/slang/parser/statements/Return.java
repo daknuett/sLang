@@ -8,8 +8,9 @@ import slang.lexer.TokenType;
 import slang.parser.Datatype;
 import slang.parser.Function;
 import slang.parser.Statement;
-import slang.parser.SyntaxErrorException;
 import slang.parser.Utilities;
+import slang.parser.exceptions.NoExpressionException;
+import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.parts.Expression;
 
 public class Return implements Statement
@@ -26,7 +27,7 @@ public class Return implements Statement
 		return retValue;
 	}
 
-	public static Statement build(ListIterator<Token> tokens) throws ParseException, SyntaxErrorException
+	public static Return build(ListIterator<Token> tokens) throws ParseException, SyntaxErrorException
 	{
 		Token first = tokens.next();
 		if(first.getType() != TokenType.RETURN)
@@ -38,7 +39,7 @@ public class Return implements Statement
 		{
 			expression = Expression.build(tokens);
 		}
-		catch(ParseException e)
+		catch(NoExpressionException e)
 		{
 			Utilities.gotoIndex(tokens, indexBefore);
 		}
@@ -53,11 +54,12 @@ public class Return implements Statement
 			if(expression != null)
 				throw new SyntaxErrorException("return type is void", first.getLinePos()); 
 		}
-		
-		Token second = tokens.next();
-		if(second.getType() != TokenType.SEMICOLON)
-			throw new SyntaxErrorException("; expected", second.getLinePos());
-		
 		return new Return(expression);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return retValue + "is returned by this function";
 	}
 }

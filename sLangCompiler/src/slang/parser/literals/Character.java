@@ -45,4 +45,10 @@ public class Character extends Expression
 		
 		return new Character(characters.toString());
 	}
+	
+	@Override
+	public String toString()
+	{
+		return "'" + character + "'";
+	}
 }

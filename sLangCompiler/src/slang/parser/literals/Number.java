@@ -31,4 +31,9 @@ public class Number extends Expression
 		
 		return new Number(Integer.parseInt(first.getRepresentation()));
 	}
+	
+	public String toString()
+	{
+		return Integer.toString(value);
+	}
 }

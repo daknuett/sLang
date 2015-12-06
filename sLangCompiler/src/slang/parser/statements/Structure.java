@@ -5,8 +5,8 @@ import java.util.ListIterator;
 
 import slang.lexer.Token;
 import slang.parser.Statement;
-import slang.parser.SyntaxErrorException;
 import slang.parser.Utilities;
+import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.structures.IfStruct;
 import slang.parser.statements.structures.WhileStruct;
 
@@ -41,6 +41,6 @@ public class Structure implements Statement
 			throw new ParseException("could not create structure", -1);
 		}
 		
-		return null;
+		return structure;
 	}
 }

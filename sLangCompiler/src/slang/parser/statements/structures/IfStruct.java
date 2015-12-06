@@ -7,7 +7,7 @@ import slang.lexer.Token;
 import slang.lexer.TokenType;
 import slang.parser.Statement;
 import slang.parser.StatementBuilder;
-import slang.parser.SyntaxErrorException;
+import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.Structure;
 import slang.parser.statements.parts.Expression;
 
@@ -46,7 +46,9 @@ public class IfStruct extends Structure
 		
 		Token fourth = tokens.next();
 		if(fourth.getType() == TokenType.ELSE)
+		{
 			falseStatement = StatementBuilder.build(tokens);
+		}
 		else tokens.previous();
 		
 		return new IfStruct(condition, trueStatement, falseStatement);
@@ -63,5 +65,11 @@ public class IfStruct extends Structure
 	public Statement getFalseBody()
 	{
 		return falseBody;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "if " + condition + " is 0 do\n" + trueBody + "else do\n" + falseBody;
 	}
 }

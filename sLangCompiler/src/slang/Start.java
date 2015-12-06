@@ -10,7 +10,7 @@ import java.util.LinkedList;
 import slang.lexer.Lexer;
 import slang.lexer.Token;
 import slang.parser.Program;
-import slang.parser.SyntaxErrorException;
+import slang.parser.exceptions.SyntaxErrorException;
 
 
 public class Start
@@ -23,7 +23,7 @@ public class Start
 		try
 		{
 			Program p = Program.build(tokens.listIterator());
-			System.out.println(p);
+			System.out.println("\n\n" + p);
 			
 		} catch(SyntaxErrorException e)
 		{

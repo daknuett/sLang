@@ -7,10 +7,11 @@ import java.util.TreeMap;
 
 import slang.lexer.Token;
 import slang.lexer.TokenType;
+import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.Block;
 import slang.parser.statements.parts.Expression;
 
-public class Variable extends Expression		//TODO	finish Variable view
+public class Variable extends Expression		//TODO finish Variable view
 {
 	private static Map<String, Variable> variables = new TreeMap<String, Variable>();
 	private static Variable lastAdded;
@@ -40,10 +41,7 @@ public class Variable extends Expression		//TODO	finish Variable view
 		{
 			variables.put(name, this);
 			lastAdded = this;
-		}
-		
-		
-			
+		}	
 	}
 
 	public String getName()
@@ -58,18 +56,6 @@ public class Variable extends Expression		//TODO	finish Variable view
 	public Block getBlock()
 	{
 		return block;
-	}
-
-	@Override
-	public BinaryOperator getOperation()
-	{
-		return null;
-	}
-
-	@Override
-	public Expression getSecondExpression()
-	{
-		return null;
 	}
 	
 	public static void joinBlock(Block block)
@@ -96,7 +82,7 @@ public class Variable extends Expression		//TODO	finish Variable view
 	public static Variable getFromCurrent(String representation)
 	{
 		Variable var = variables.get(representation);
-		return var.getBlock().isVisibleIn(currentBlock) ? var : null;
+		return var != null ? (var.getBlock().isVisibleIn(currentBlock) ? var : null) : null;
 	}
 	
 	public static Variable build(ListIterator<Token> tokens) throws ParseException, SyntaxErrorException
@@ -112,5 +98,10 @@ public class Variable extends Expression		//TODO	finish Variable view
 			throw new SyntaxErrorException("variable " + first.getRepresentation() + " could not be found", first.getLinePos());
 		
 		return var;
+	}
+	
+	public String toString()
+	{
+		return "var " + name + ":" + type + " (from " + block.getBlockNumber() + ")";
 	}
 }

@@ -7,11 +7,17 @@ import java.util.TreeMap;
 
 import slang.lexer.Token;
 import slang.lexer.TokenType;
+import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.Block;
 
 public class Function
 {
 	private static Map<String, Function> functions = new TreeMap<String, Function>();
+	
+	static
+	{
+		functions.put("__ASM__", new Function("__ASM__", 1, Datatype.VOID, Block.ROOT));		//TODO add better handling for predefined functions
+	}
 	
 	private static Function currentFunction;
 	
@@ -20,6 +26,14 @@ public class Function
 	private Datatype retType;
 	private Block body;
 	
+	private Function(String name, Block block)
+	{
+		this.body = block;
+		
+		functions.put(name, this);
+		currentFunction = this;
+	}
+	
 	private Function(String name, int paramCount, Datatype retType, Block body)
 	{
 		this.name = name;
@@ -27,6 +41,7 @@ public class Function
 		this.retType = retType;
 		this.body = body;
 		
+		functions.put(name, this);
 		currentFunction = this;
 	}
 	
@@ -54,7 +69,7 @@ public class Function
 			throw new ParseException("function expected", first.getLinePos());
 		
 		Token second = tokens.next();
-		if(second.getType() != TokenType.DATATYPE || second.getType() != TokenType.VOID)
+		if(second.getType() != TokenType.DATATYPE && second.getType() != TokenType.VOID)
 			throw new SyntaxErrorException("datatype expected", second.getLinePos());
 		
 		Token third = tokens.next();
@@ -64,11 +79,15 @@ public class Function
 		if(!Utilities.checkName(third.getRepresentation()))
 				throw new SyntaxErrorException(third.getRepresentation() + " is no valid function name", third.getLinePos());
 		
+		if(functions.containsValue(third.getRepresentation()))
+			throw new SyntaxErrorException("function name " + third.getRepresentation() + " already exists", third.getLinePos());
+		
 		Token fourth = tokens.next();
 		if(fourth.getType() != TokenType.BRACKET_OPEN)
 			throw new SyntaxErrorException("( expected", fourth.getLinePos());
 		
 		Block block = new Block(Block.ROOT);
+		
 		
 		int paramCount = 0;
 		try
@@ -79,6 +98,7 @@ public class Function
 		{
 			throw new SyntaxErrorException(e.getMessage(), e.getErrorOffset());
 		}
+		Function function = new Function(third.getRepresentation(), paramCount, Datatype.findDatatype(second.getRepresentation()), block);
 		
 		Token fifth = tokens.next();
 		if(fifth.getType() != TokenType.BRACKET_CLOSE)
@@ -86,7 +106,8 @@ public class Function
 		
 		block.readBlock(tokens);
 		
-		return new Function(third.getRepresentation(), paramCount, Datatype.findDatatype(second.getRepresentation()), block);
+		
+		return function;
 	}
 	
 	public static Function get(String representation)
@@ -97,5 +118,11 @@ public class Function
 	public static Function getCurrentFunction()
 	{
 		return currentFunction;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "function " + name + " returns " + retType + " from " + paramCount + " params\nFunctionBegin\n" + body + "\nfunctionEnd\n\n";
 	}
 }

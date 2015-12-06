@@ -7,29 +7,33 @@ import slang.lexer.Token;
 import slang.lexer.TokenType;
 import slang.parser.Datatype;
 import slang.parser.Statement;
-import slang.parser.SyntaxErrorException;
 import slang.parser.Variable;
+import slang.parser.exceptions.SyntaxErrorException;
 
 public class VariableDeclaration implements Statement
 {
-	private Datatype type;
-	private String name;
+	private Variable variable;
 	
-	private VariableDeclaration(Datatype type, String name)
+	private VariableDeclaration(Variable variable)
 	{
-		this.type = type;
-		this.name = name;
+		this.variable = variable;
 	}
 	
 	public Datatype getType()
 	{
-		return type;
+		return variable.getType();
 	}
 	public String getName()
 	{
-		return name;
+		return variable.getName();
 	}
-	public static VariableDeclaration build(ListIterator<Token> tokens) throws ParseException, SyntaxErrorException	//TODO
+	
+	public Variable getVariable()
+	{
+		return variable;
+	}
+	
+	public static VariableDeclaration build(ListIterator<Token> tokens) throws ParseException, SyntaxErrorException
 	{
 		Token first = tokens.next();
 		if(first.getType() != TokenType.DATATYPE)
@@ -56,6 +60,12 @@ public class VariableDeclaration implements Statement
 			throw new ParseException(e.getMessage(), first.getLinePos());
 		}
 		
-		return new VariableDeclaration(var.getType(), var.getName());
+		return new VariableDeclaration(var);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return variable.getType() + " " + variable.getName();
 	}
 }

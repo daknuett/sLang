@@ -10,7 +10,7 @@ import slang.lexer.TokenType;
 import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.Block;
 
-public class Function
+public class Function		//TODO add return control
 {
 	private static Map<String, Function> functions = new TreeMap<String, Function>();
 	

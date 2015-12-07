@@ -60,6 +60,6 @@ public class Return implements Statement
 	@Override
 	public String toString()
 	{
-		return retValue + "is returned by this function";
+		return retValue + " is returned by this function";
 	}
 }

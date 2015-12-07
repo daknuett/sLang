@@ -27,6 +27,6 @@ public class Utilities
 
 	public static boolean checkName(String representation)
 	{
-		return true;	//TODO
+		return true;	//TODO check for valid names
 	}
 }

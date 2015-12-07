@@ -11,7 +11,7 @@ import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.Block;
 import slang.parser.statements.parts.Expression;
 
-public class Variable extends Expression		//TODO finish Variable view
+public class Variable extends Expression		//TODO finish Variable view	TODO add not yet initialized
 {
 	private static Map<String, Variable> variables = new TreeMap<String, Variable>();
 	private static Variable lastAdded;

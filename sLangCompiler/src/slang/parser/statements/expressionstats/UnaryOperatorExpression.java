@@ -68,7 +68,7 @@ public class UnaryOperatorExpression extends Expression implements ExpressionSta
 		{
 			throw new ParseException("variable " + first.getRepresentation() + " could not be found", first.getLinePos());
 		}
-		return new UnaryOperatorExpression(var, UnaryOperator.findOperator(second.getRepresentation(), wasPre));
+		return new UnaryOperatorExpression(var, UnaryOperator.findOperator(operator, wasPre));
 	}
 
 	public enum UnaryOperator

@@ -123,7 +123,7 @@ public class Block implements Statement
 		return upper;
 	}
 
-	public boolean isVisibleIn(Block currentBlock)	//TODO
+	public boolean isVisibleIn(Block currentBlock)	//TODO fill isVisibleIn method
 	{
 		return true;
 	}

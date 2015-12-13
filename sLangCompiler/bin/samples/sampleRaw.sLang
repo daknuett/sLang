@@ -1,7 +1,7 @@
 function void start()
 {
 	int f=45;
-	int b=foo(f);
+	int b=foo(f)+f;
 	char chr='c';
 	__ASM__('nop');
 	HW_PR(b);
@@ -24,7 +24,7 @@ function int foo(int arg1)
 	while(i<(bar/2))
 	{
 		bar = bar + i;
-		i++;
+		i=i+1;
 	}
 	return bar;
 }
@@ -32,7 +32,7 @@ function int foo(int arg1)
 
 function void HW_PR(int arg)
 {
-	__ASM__('mov arg r0');
+	__ASM__('mov RAMEND_LOW r0');
 	__ASM__('ldi 04 SFR');
 	return;
 }

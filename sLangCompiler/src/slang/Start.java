@@ -13,10 +13,7 @@ import slang.lexer.Lexer;
 import slang.lexer.Token;
 import slang.parser.Function;
 import slang.parser.Program;
-import slang.parser.Statement;
 import slang.parser.exceptions.SyntaxErrorException;
-import slang.parser.statements.Block;
-import slang.parser.statements.expressionstats.Assignment;
 
 
 public class Start
@@ -31,20 +28,18 @@ public class Start
 			Program p = Program.build(tokens.listIterator());
 			System.out.println("\n\n" + p);
 			Function f =  p.getFunctions()[0];
-			Block b1 = f.getBody();
 			System.out.println(f.getBody().toString());
-			Statement s1 =b1.getStatements()[1];
-			//System.out.println(s1);
-			//System.out.println(s1.getClass());
-			Assignment a =(Assignment) s1;
 			ToAssembly t = new ToAssembly(1000,30);
 			System.out.println("\n\n\n");
 			try
 			{
-				System.out.print(t.processFunction(f));
+				System.out.println(t.processProgram(p));
 			}
-			catch(RamFullException e)
-			{}
+			catch(Exception e)
+			{
+				System.out.println(e);
+				e.printStackTrace();
+			}
 			
 		} catch(SyntaxErrorException e)
 		{

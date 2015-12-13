@@ -3,14 +3,19 @@ package slang.interpreter;
 import java.util.Stack;
 
 import slang.parser.Function;
+import slang.parser.Program;
 import slang.parser.Statement;
 import slang.parser.Variable;
 import slang.parser.statements.Block;
+import slang.parser.statements.Return;
 import slang.parser.statements.VariableDeclaration;
 import slang.parser.statements.expressionstats.Assignment;
 import slang.parser.statements.expressionstats.Functioncall;
 import slang.parser.statements.parts.ArithmeticExpression;
 import slang.parser.statements.parts.Expression;
+import slang.parser.statements.parts.Expression.BinaryOperator;
+import slang.parser.statements.structures.IfStruct;
+import slang.parser.statements.structures.WhileStruct;
 import slang.parser.literals.Character;
 import slang.parser.literals.Number;
 
@@ -85,13 +90,21 @@ public class ToAssembly
 	public String declareVariable(String name) throws RamFullException
 	{
 		int addr = mem_handle.registerName(name);
-		if(DEBUG){ return "; DECLARE " + name + " at " + String.format("%x", addr) + "\n"; }
+		if(DEBUG)
+		{ 
+			return "; DECLARE " + name + " at " + String.format("%x", addr) + "\n"; 
+			}
 		return "";
 	}
 
-	public String processAssignment(Assignment a) throws RamFullException
+	public String processAssignment(Assignment a) 
+	throws RamFullException, InterpretingError
+	
 	{
-		if(a.getValue() instanceof Number || a.getValue() instanceof Character){ return processStaticAssignment(a); }
+		if(a.getValue() instanceof Number || a.getValue() instanceof Character)
+		{ 
+			return processStaticAssignment(a); 
+		}
 		// handle the "value" first.
 		// maybe we are lucky an it is another variable:
 		String res = "";
@@ -106,6 +119,12 @@ public class ToAssembly
 			// now we have to call the function first.
 			res += processFunctionCall((Functioncall) a.getValue());
 			res += "mov RAMEND_LOW r0\n";
+			res += moveToVariable(((Variable) a.getTarget()).getName(), "r0");
+			return res;
+		}
+		if(a.getValue() instanceof ArithmeticExpression)
+		{
+			res += processArithmeticExpression((ArithmeticExpression)a.getValue(),"r0");
 			res += moveToVariable(((Variable) a.getTarget()).getName(), "r0");
 			return res;
 		}
@@ -132,7 +151,7 @@ public class ToAssembly
 			if(params[i] instanceof Variable)
 			{
 				res += getFromVariable(((Variable) params[i]).getName(), "r0");
-				res += "mov r0 [int( RAMEND_LOW ,16)+" + String.valueOf(i) + "]\n";
+				res += "mov r0 [int(\" RAMEND_LOW \",16)+" + String.valueOf(i) + "]\n";
 			}
 			else
 			{
@@ -181,13 +200,103 @@ public class ToAssembly
 		return res;
 	}
 
-	public String processArithmeticExpression(ArithmeticExpression e)
+	/**
+	 * @param store define the Register to store the result
+	 * @throws InterpretingError 
+	 * */
+	public String processArithmeticExpression(ArithmeticExpression e,String store) 
+	throws InterpretingError
 	{
 		String res = "";
+		Expression current=e;
+		
+		// load first part
+		if(!(((ArithmeticExpression)current).getFirstExpression() instanceof Number)&&( !( ((ArithmeticExpression)current).getFirstExpression()instanceof Variable))&& !(((ArithmeticExpression)current).getFirstExpression() instanceof Functioncall))
+		{
+			throw new InterpretingError("cannot interpret Expression "+current+" of type "+current.getClass()+" as value");
+		}
+		Expression working=((ArithmeticExpression)current).getFirstExpression();
+		if(working instanceof Variable)
+		{
+			res+=getFromVariable(((Variable)working).getName(),"r0");
+		}
+		if(working instanceof Number)
+		{
+			res+="ldi "+String.format("%x", ((Number)working).getValue())+" r0\n";
+		}
+		if(working instanceof Functioncall)
+		{
+			res+=processFunctionCall(((Functioncall)working));
+			res+="mov RAMEND_LOW r0\n";
+		}
+		Expression next=e.getSecondExpression();
+		boolean not_done=true;
+		while(not_done)
+		{
+			// now calculation done
+			if(next instanceof Variable)
+			{
+				res+=getFromVariable(((Variable)next).getName(),"r1");
+				not_done=false;
+			}
+			if(next instanceof Number)
+			{
+				res+="ldi "+String.format("%x", ((Number)next).getValue())+" r1\n";
+				not_done=false;
+			}
+			if(next instanceof Functioncall)
+			{
+				res+=processFunctionCall(((Functioncall)next));
+				res+="mov RAMEND_LOW r1\n";
+				not_done=false;
+			}
+			
+			
+			// do the operation
+			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.PLUS )
+			{
+				res+="add r0 r1\n";
+			}
+			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.MINUS )
+			{
+				res+="sub r0 r1\n";
+			}
+			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.MULTIPLY )
+			{
+				res+="mul r0 r1\n";
+			}
+			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.DIVIDE )
+			{
+				res+="div r0 r1\n";
+			}
+			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.AND )
+			{
+				res+="and r0 r1\n";
+			}
+			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.OR )
+			{
+				res+="or r0 r1\n";
+			}
+			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.XOR )
+			{
+				res+="xor r0 r1\n";
+			}
+			
+			if(not_done)
+			{
+				current=next;
+				next=((ArithmeticExpression)current).getSecondExpression();
+			}
+			
+			// move the result to @param store
+			res+="mov r1 "+store+"\n";
+
+		}
 		return res;
 	}
 
-	public String processBlock(Block b) throws RamFullException
+	public String processBlock(Block b) 
+			throws RamFullException, InterpretingError
 	{
 		String res = "";
 		res += startJumpableBlock(String.valueOf(b.getBlockNumber()));
@@ -211,18 +320,226 @@ public class ToAssembly
 			{
 				res += processBlock((Block) b_statements[i]);
 			}
+			if(b_statements[i] instanceof IfStruct)
+			{
+				res += processIfStruct((IfStruct) b_statements[i]);
+			}
+			if(b_statements[i] instanceof WhileStruct)
+			{
+				res += processWhileStruct((WhileStruct) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Return)
+			{
+				res+=parseExpressionTo(((Return)b_statements[i]).getRetValue(),"r0");
+				res+="mov r0 RAMEND_LOW\n";
+				res+="ret\n";
+			}
+		}
+		res += endJumpableBlock(String.valueOf(b.getBlockNumber()));
+
+		return res;
+	}
+	public String processBlock(Block b,int skip) 
+			throws RamFullException, InterpretingError
+	{
+		String res = "";
+		res += startJumpableBlock(String.valueOf(b.getBlockNumber()));
+		Statement b_statements[] = b.getStatements();
+
+		for(int i = skip; i < b_statements.length; i++)
+		{
+			if(b_statements[i] instanceof VariableDeclaration)
+			{
+				res += declareVariable(((VariableDeclaration) b_statements[i]).getName());
+			}
+			if(b_statements[i] instanceof Assignment)
+			{
+				res += processAssignment((Assignment) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Functioncall)
+			{
+				res += processFunctionCall((Functioncall) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Block)
+			{
+				res += processBlock((Block) b_statements[i]);
+			}
+			if(b_statements[i] instanceof IfStruct)
+			{
+				res += processIfStruct((IfStruct) b_statements[i]);
+			}
+			if(b_statements[i] instanceof WhileStruct)
+			{
+				res += processWhileStruct((WhileStruct) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Return)
+			{
+				res+=parseExpressionTo(((Return)b_statements[i]).getRetValue(),"r0");
+				res+="mov r0 RAMEND_LOW\n";
+				res+="ret\n";
+			}
 		}
 		res += endJumpableBlock(String.valueOf(b.getBlockNumber()));
 
 		return res;
 	}
 
-	public String processFunction(Function f) throws RamFullException
+	public String processFunction(Function f) 
+			throws RamFullException, InterpretingError
 	{
 		String res = "";
 		res += startCallableBlock(f.getName());
-		res += processBlock(f.getBody());
+		if(DEBUG)
+		{
+			res+="; setting up environment\n";
+		}
+		Statement [] b_statements=f.getBody().getStatements();
+		for(int i =0;i<f.getParamCount();i++)
+		{
+			res+=declareVariable(((VariableDeclaration) b_statements[i]).getName());
+			String name=((VariableDeclaration) b_statements[i]).getName();
+			res+="mov [int(\" RAMEND_LOW \",16)+"+String.format("%x",i)+"] "+mem_handle.getAddress(name)+"\n";
+		}
+		if(DEBUG)
+		{
+			res+="; setup done\n";
+		}
+		res += processBlock(f.getBody(),f.getParamCount());
 		res += endCallableBlock(f.getName(), false);
+		return res;
+	}
+	
+	/**
+	 * @param to should be a register name
+	 * @throws InterpretingError 
+	 * */
+	public String parseExpressionTo(Expression e,String to) 
+		throws InterpretingError
+	{
+		String res="";
+		if(e instanceof Number )
+		{ 
+			res+="ldi "+((Number)e).getValue() +" "+to ; 
+		}
+		if(e instanceof Character )
+		{
+			res+="ldi '"+((Character)e).getCharacter().charAt(0) +"' "+to ;
+		}
+		
+		// handle the "value" first.
+		// maybe we are lucky an it is another variable:
+		if(e instanceof Variable)
+		{
+			res += getFromVariable(((Variable) e).getName(), "r0");
+			return res;
+		}
+		if(e instanceof Functioncall)
+		{
+			// now we have to call the function first.
+			res += processFunctionCall((Functioncall) e);
+			res += "mov RAMEND_LOW r0\n";
+			return res;
+		}
+		if(e instanceof ArithmeticExpression)
+		{
+			res += processArithmeticExpression((ArithmeticExpression)e,"r0");
+			return res;
+		}
+		return res;
+	}
+	
+	public String processWhileStruct(WhileStruct w) 
+			throws RamFullException, InterpretingError
+	{
+		String res ="";
+		if(DEBUG)
+		{
+			res+="; while struct \n";
+			res+="; initial check\n";
+		}
+		res+=parseExpressionTo(w.getCondition(),"r0");
+		res+="jne r0 J_S_LFB"+((Block)w.getBody()).getBlockNumber()+"\n";
+		res+="jeq r0 J_E_LFB"+((Block)w.getBody()).getBlockNumber()+"\n";
+		if(DEBUG)
+		{
+			res+="; initial check done\n";
+		}
+		
+		// very similar to processBlock
+		res+=startJumpableBlock(String.valueOf(((Block)w.getBody()).getBlockNumber()));
+		Statement b_statements[] = ((Block)w.getBody()).getStatements();
+
+		for(int i = 0; i < b_statements.length; i++)
+		{
+			if(b_statements[i] instanceof VariableDeclaration)
+			{
+				res += declareVariable(((VariableDeclaration) b_statements[i]).getName());
+			}
+			if(b_statements[i] instanceof Assignment)
+			{
+				res += processAssignment((Assignment) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Functioncall)
+			{
+				res += processFunctionCall((Functioncall) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Block)
+			{
+				res += processBlock((Block) b_statements[i]);
+			}
+			if(b_statements[i] instanceof IfStruct)
+			{
+				res += processIfStruct((IfStruct) b_statements[i]);
+			}
+			if(b_statements[i] instanceof WhileStruct)
+			{
+				res += processWhileStruct((WhileStruct) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Return)
+			{
+				res+=parseExpressionTo(((Return)b_statements[i]).getRetValue(),"r0");
+				res+="mov r0 RAMEND_LOW\n";
+				res+="ret\n";
+			}
+		}
+		res += parseExpressionTo(w.getCondition(),"r0");
+		res += "jne r0 J_S_LFB"+((Block)w.getBody()).getBlockNumber()+"\n";
+		if(DEBUG)
+		{
+			res+="; while done \n";
+		}
+		res += endJumpableBlock(String.valueOf(String.valueOf(((Block)w.getBody()).getBlockNumber())));
+		return res;
+	}
+	
+	public String processIfStruct(IfStruct i) 
+			throws InterpretingError, RamFullException
+	{
+		String res="";
+		if(DEBUG)
+		{
+			res+="; if\n";
+			res+="; checking expression\n";
+		}
+		res+=parseExpressionTo(i.getCondition(),"r0");
+		res+="jne r0 J_S_LFB"+((Block)i.getTrueBody()).getBlockNumber()+"\n";
+		res+="jeq r0 J_S_LFB"+((Block)i.getFalseBody()).getBlockNumber()+"\n";
+		res+=processBlock((Block)i.getTrueBody());
+		res+=processBlock((Block)i.getFalseBody());
+		return res;
+	}
+	
+	public String processProgram(Program p) 
+			throws RamFullException, InterpretingError
+	{
+		String res="";
+		res+="#include<stddef.inc>\n";
+		
+		for (Function f: p.getFunctions())
+		{
+			res+=processFunction(f);
+		}
+		
 		return res;
 	}
 }

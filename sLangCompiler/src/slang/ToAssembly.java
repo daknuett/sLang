@@ -2,9 +2,14 @@ package slang;
 
 import java.util.Stack;
 
+import slang.parser.Function;
+import slang.parser.Statement;
 import slang.parser.Variable;
+import slang.parser.statements.Block;
+import slang.parser.statements.VariableDeclaration;
 import slang.parser.statements.expressionstats.Assignment;
 import slang.parser.statements.expressionstats.Functioncall;
+import slang.parser.statements.parts.ArithmeticExpression;
 import slang.parser.statements.parts.Expression;
 import slang.parser.literals.Character;
 import slang.parser.literals.Number;
@@ -64,7 +69,7 @@ public class ToAssembly
 	{
 		mem_handle=handle_stack.pop();
 		String res ="";
-		res+=blockname+":\n";
+		res+=blockname+"_end:\n";
 		if(!ret_done)
 		{
 			res+="ret\n";
@@ -145,7 +150,7 @@ public class ToAssembly
 	
 	public String makeInlineAssembly(Character asm)
 	{
-		return "; APP\n"+asm.getCharacter()+"\n;NOAPP\n";
+		return "; APP\n"+asm.getCharacter()+"\n; NOAPP\n";
 	}
 	
 	/**
@@ -175,6 +180,52 @@ public class ToAssembly
 			System.err.println("Something bad happenden, while moving to variable.\n(Is the variable declared?)");
 			System.exit(1);
 		}
+		return res;
+	}
+	
+	public String processArithmeticExpression(ArithmeticExpression e)
+	{
+		String res ="";
+		return res;
+	}
+	public String processBlock(Block b)
+	throws RamFullException
+	{
+		String res="";
+		res+=startJumpableBlock(String.valueOf(b.getBlockNumber()));
+		Statement b_statements[]=b.getStatements();
+		
+		for (int i=0;i<b_statements.length;i++)
+		{
+			if(b_statements[i] instanceof VariableDeclaration)
+			{
+				res+=declareVariable(((VariableDeclaration)b_statements[i]).getName());
+			}
+			if(b_statements[i] instanceof Assignment)
+			{
+				res+=processAssignment((Assignment)b_statements[i]);
+			}
+			if(b_statements[i] instanceof Functioncall)
+			{
+				res+=processFunctionCall((Functioncall)b_statements[i]);
+			}
+			if(b_statements[i] instanceof Block)
+			{
+				res+=processBlock((Block)b_statements[i]);
+			}
+		}
+		res+=endJumpableBlock(String.valueOf(b.getBlockNumber()));
+		
+		return res;
+	}
+	
+	public String processFunction(Function f) 
+	throws RamFullException
+	{
+		String res="";
+		res+=startCallableBlock(f.getName());
+		res+=processBlock(f.getBody());
+		res+=endCallableBlock(f.getName(),false);
 		return res;
 	}
 }

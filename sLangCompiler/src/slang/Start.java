@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 
+import slang.interpreter.RamFullException;
+import slang.interpreter.ToAssembly;
 import slang.lexer.Lexer;
 import slang.lexer.Token;
 import slang.parser.Function;
@@ -14,7 +16,6 @@ import slang.parser.Program;
 import slang.parser.Statement;
 import slang.parser.exceptions.SyntaxErrorException;
 import slang.parser.statements.Block;
-import slang.parser.statements.VariableDeclaration;
 import slang.parser.statements.expressionstats.Assignment;
 
 

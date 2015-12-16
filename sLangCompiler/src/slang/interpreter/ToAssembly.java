@@ -11,6 +11,8 @@ import slang.parser.statements.Return;
 import slang.parser.statements.VariableDeclaration;
 import slang.parser.statements.expressionstats.Assignment;
 import slang.parser.statements.expressionstats.Functioncall;
+import slang.parser.statements.expressionstats.UnaryOperatorExpression;
+import slang.parser.statements.expressionstats.UnaryOperatorExpression.UnaryOperator;
 import slang.parser.statements.parts.ArithmeticExpression;
 import slang.parser.statements.parts.Expression;
 import slang.parser.statements.parts.Expression.BinaryOperator;
@@ -98,8 +100,7 @@ public class ToAssembly
 	}
 
 	public String processAssignment(Assignment a) 
-	throws RamFullException, InterpretingError
-	
+	throws RamFullException, InterpretingError	
 	{
 		if(a.getValue() instanceof Number || a.getValue() instanceof Character)
 		{ 
@@ -131,7 +132,8 @@ public class ToAssembly
 		return "";
 	}
 
-	public String processFunctionCall(Functioncall f)
+	public String processFunctionCall(Functioncall f) 
+			throws InterpretingError
 	{
 		// handle inline assembly first
 		if(f.getFunction().getName() == "__ASM__"){ return makeInlineAssembly((Character) f.getParameters()[0]); }
@@ -152,6 +154,11 @@ public class ToAssembly
 			{
 				res += getFromVariable(((Variable) params[i]).getName(), "r0");
 				res += "mov r0 [int(\" RAMEND_LOW \",16)+" + String.valueOf(i) + "]\n";
+			}
+			else if(params[i] instanceof Expression)
+			{
+				res+=parseExpressionTo(params[i],"r0");
+				res+="mov r0 [int(\" RAMEND_LOW \",16)+" + String.valueOf(i) + "]\n";
 			}
 			else
 			{
@@ -209,7 +216,6 @@ public class ToAssembly
 	{
 		String res = "";
 		Expression current=e;
-		
 		// load first part
 		if(!(((ArithmeticExpression)current).getFirstExpression() instanceof Number)&&( !( ((ArithmeticExpression)current).getFirstExpression()instanceof Variable))&& !(((ArithmeticExpression)current).getFirstExpression() instanceof Functioncall))
 		{
@@ -218,22 +224,24 @@ public class ToAssembly
 		Expression working=((ArithmeticExpression)current).getFirstExpression();
 		if(working instanceof Variable)
 		{
-			res+=getFromVariable(((Variable)working).getName(),"r0");
+			res+=getFromVariable(((Variable)working).getName(),store);
 		}
 		if(working instanceof Number)
 		{
-			res+="ldi "+String.format("%x", ((Number)working).getValue())+" r0\n";
+			res+="ldi "+String.format("%x", ((Number)working).getValue())+" "+store+"\n";
 		}
 		if(working instanceof Functioncall)
 		{
 			res+=processFunctionCall(((Functioncall)working));
-			res+="mov RAMEND_LOW r0\n";
+			res+="mov RAMEND_LOW "+store+ "\n";
+		
 		}
+		System.out.println("first exp done: "+res);
 		Expression next=e.getSecondExpression();
 		boolean not_done=true;
 		while(not_done)
 		{
-			// now calculation done
+			// handle easiest case: second expression is just a call or value
 			if(next instanceof Variable)
 			{
 				res+=getFromVariable(((Variable)next).getName(),"r1");
@@ -249,48 +257,74 @@ public class ToAssembly
 				res+=processFunctionCall(((Functioncall)next));
 				res+="mov RAMEND_LOW r1\n";
 				not_done=false;
+				
 			}
-			
-			
-			// do the operation
-			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.PLUS )
-			{
-				res+="add r0 r1\n";
-			}
-			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.MINUS )
-			{
-				res+="sub r0 r1\n";
-			}
-			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.MULTIPLY )
-			{
-				res+="mul r0 r1\n";
-			}
-			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.DIVIDE )
-			{
-				res+="div r0 r1\n";
-			}
-			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.AND )
-			{
-				res+="and r0 r1\n";
-			}
-			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.OR )
-			{
-				res+="or r0 r1\n";
-			}
-			if(((ArithmeticExpression)current).getOperation() == BinaryOperator.XOR )
-			{
-				res+="xor r0 r1\n";
-			}
-			
+			// now we are not yet finished
 			if(not_done)
 			{
-				current=next;
-				next=((ArithmeticExpression)current).getSecondExpression();
+				working=((ArithmeticExpression)next).getFirstExpression();
+				if(working instanceof Variable)
+				{
+					res+=getFromVariable(((Variable)working).getName(),"r1");
+				}
+				if(working instanceof Number)
+				{
+					res+="ldi "+String.format("%x", ((Number)working).getValue())+" r1\n";
+				}
+				if(working instanceof Functioncall)
+				{
+					res+=processFunctionCall(((Functioncall)working));
+					res+="mov RAMEND_LOW r1\n";				
+				}
+				next=((ArithmeticExpression)next).getSecondExpression();
+				current=((ArithmeticExpression)current).getSecondExpression();
+			}
+			BinaryOperator op=((ArithmeticExpression)current).getOperation();
+			// std ops
+			if(op==BinaryOperator.MINUS)
+			{
+				res+="sub "+store+" r1\n";
+			}
+			if(op==BinaryOperator.PLUS)
+			{
+				res+="add "+store+" r1\n";
+			}if(op==BinaryOperator.MULTIPLY)
+			{
+				res+="mul "+store+" r1\n";
+			}
+			if(op==BinaryOperator.DIVIDE)
+			{
+				res+="div "+store+" r1\n";
+			}
+			// will be compared by 0:
+			// a < b => ( a - b ) < 0
+			if(op==BinaryOperator.GREATER)
+			{
+				res+="sub "+store+" r1\n";
+			}
+			if(op==BinaryOperator.LESS)
+			{
+				res+="sub "+store+" r1\n";
+			}
+			if(op==BinaryOperator.EQUALS)
+			{
+				res+="sub "+store+" r1\n";
+			}
+			// logic operations
+			if(op==BinaryOperator.AND)
+			{
+				res+="and "+store+" r1\n";
+			}
+			if(op==BinaryOperator.OR)
+			{
+				res+="or "+store+" r1\n";
+			}
+			if(op==BinaryOperator.XOR)
+			{
+				res+="xor "+store+" r1\n";
 			}
 			
-			// move the result to @param store
 			res+="mov r1 "+store+"\n";
-
 		}
 		return res;
 	}
@@ -304,6 +338,9 @@ public class ToAssembly
 
 		for(int i = 0; i < b_statements.length; i++)
 		{
+			// some output to detect something
+			//System.out.println(b_statements[i]);
+			//System.out.println(b_statements[i].getClass());
 			if(b_statements[i] instanceof VariableDeclaration)
 			{
 				res += declareVariable(((VariableDeclaration) b_statements[i]).getName());
@@ -348,6 +385,9 @@ public class ToAssembly
 
 		for(int i = skip; i < b_statements.length; i++)
 		{
+			// some output to detect something
+						//System.out.println(b_statements[i]);
+						//System.out.println(b_statements[i].getClass());
 			if(b_statements[i] instanceof VariableDeclaration)
 			{
 				res += declareVariable(((VariableDeclaration) b_statements[i]).getName());
@@ -383,6 +423,76 @@ public class ToAssembly
 
 		return res;
 	}
+	public String processBlock(Block b,int skip,String append) 
+			throws RamFullException, InterpretingError
+	{
+		String res = "";
+		res += startJumpableBlock(String.valueOf(b.getBlockNumber()));
+		Statement b_statements[] = b.getStatements();
+
+		for(int i = skip; i < b_statements.length; i++)
+		{
+			if(b_statements[i] instanceof VariableDeclaration)
+			{
+				res += declareVariable(((VariableDeclaration) b_statements[i]).getName());
+			}
+			if(b_statements[i] instanceof Assignment)
+			{
+				res += processAssignment((Assignment) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Functioncall)
+			{
+				res += processFunctionCall((Functioncall) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Block)
+			{
+				res += processBlock((Block) b_statements[i]);
+			}
+			if(b_statements[i] instanceof IfStruct)
+			{
+				res += processIfStruct((IfStruct) b_statements[i]);
+			}
+			if(b_statements[i] instanceof WhileStruct)
+			{
+				res += processWhileStruct((WhileStruct) b_statements[i]);
+			}
+			if(b_statements[i] instanceof Return)
+			{
+				res+=parseExpressionTo(((Return)b_statements[i]).getRetValue(),"r0");
+				res+="mov r0 RAMEND_LOW\n";
+				res+="ret\n";
+			}
+			if(b_statements[i] instanceof UnaryOperatorExpression)
+			{
+				res+=getFromVariable(((UnaryOperatorExpression)b_statements[i]).getVariable().getName(),"r0");
+				if(((UnaryOperatorExpression)b_statements[i]).getOperator()==UnaryOperator.INCREMENT_POST)
+				{
+					
+					res+="inc r0\n";
+				}
+				if(((UnaryOperatorExpression)b_statements[i]).getOperator()==UnaryOperator.INCREMENT_PRE)
+				{
+					
+					res+="inc r0\n";
+				}
+				if(((UnaryOperatorExpression)b_statements[i]).getOperator()==UnaryOperator.DECREMENT_POST)
+				{
+					
+					res+="dec r0\n";
+				}if(((UnaryOperatorExpression)b_statements[i]).getOperator()==UnaryOperator.DECREMENT_PRE)
+				{
+					
+					res+="dec r0\n";
+				}
+				res+=moveToVariable(((UnaryOperatorExpression)b_statements[i]).getVariable().getName(),"r0");
+				
+			}
+		}
+		res+=append;
+		res += endJumpableBlock(String.valueOf(b.getBlockNumber()));
+
+		return res;
+	}
 
 	public String processFunction(Function f) 
 			throws RamFullException, InterpretingError
@@ -398,7 +508,7 @@ public class ToAssembly
 		{
 			res+=declareVariable(((VariableDeclaration) b_statements[i]).getName());
 			String name=((VariableDeclaration) b_statements[i]).getName();
-			res+="mov [int(\" RAMEND_LOW \",16)+"+String.format("%x",i)+"] "+mem_handle.getAddress(name)+"\n";
+			res+="mov [int(\" RAMEND_LOW \",16)+"+i+"] "+String.format("%x",mem_handle.getAddress(name))+"\n";
 		}
 		if(DEBUG)
 		{
@@ -419,11 +529,11 @@ public class ToAssembly
 		String res="";
 		if(e instanceof Number )
 		{ 
-			res+="ldi "+((Number)e).getValue() +" "+to ; 
+			res+="ldi "+((Number)e).getValue() +" "+to+"\n" ; 
 		}
 		if(e instanceof Character )
 		{
-			res+="ldi '"+((Character)e).getCharacter().charAt(0) +"' "+to ;
+			res+="ldi '"+((Character)e).getCharacter().charAt(0) +"' "+to+"\n";
 		}
 		
 		// handle the "value" first.
@@ -459,56 +569,23 @@ public class ToAssembly
 		}
 		res+=parseExpressionTo(w.getCondition(),"r0");
 		res+="jne r0 J_S_LFB"+((Block)w.getBody()).getBlockNumber()+"\n";
-		res+="jeq r0 J_E_LFB"+((Block)w.getBody()).getBlockNumber()+"\n";
+		res+="jmp J_E_LFB"+((Block)w.getBody()).getBlockNumber()+"\n";
 		if(DEBUG)
 		{
 			res+="; initial check done\n";
 		}
+		//String append="";
+		// TODO: why did I added this variable?
+		res+=processBlock((Block)w.getBody(),
+				0,
+				parseExpressionTo(w.getCondition(),"r0")+
+						"jne r0 J_S_LFB"+
+						String.valueOf(((Block)w.getBody()).getBlockNumber())+"\n");
 		
-		// very similar to processBlock
-		res+=startJumpableBlock(String.valueOf(((Block)w.getBody()).getBlockNumber()));
-		Statement b_statements[] = ((Block)w.getBody()).getStatements();
-
-		for(int i = 0; i < b_statements.length; i++)
-		{
-			if(b_statements[i] instanceof VariableDeclaration)
-			{
-				res += declareVariable(((VariableDeclaration) b_statements[i]).getName());
-			}
-			if(b_statements[i] instanceof Assignment)
-			{
-				res += processAssignment((Assignment) b_statements[i]);
-			}
-			if(b_statements[i] instanceof Functioncall)
-			{
-				res += processFunctionCall((Functioncall) b_statements[i]);
-			}
-			if(b_statements[i] instanceof Block)
-			{
-				res += processBlock((Block) b_statements[i]);
-			}
-			if(b_statements[i] instanceof IfStruct)
-			{
-				res += processIfStruct((IfStruct) b_statements[i]);
-			}
-			if(b_statements[i] instanceof WhileStruct)
-			{
-				res += processWhileStruct((WhileStruct) b_statements[i]);
-			}
-			if(b_statements[i] instanceof Return)
-			{
-				res+=parseExpressionTo(((Return)b_statements[i]).getRetValue(),"r0");
-				res+="mov r0 RAMEND_LOW\n";
-				res+="ret\n";
-			}
-		}
-		res += parseExpressionTo(w.getCondition(),"r0");
-		res += "jne r0 J_S_LFB"+((Block)w.getBody()).getBlockNumber()+"\n";
 		if(DEBUG)
 		{
 			res+="; while done \n";
 		}
-		res += endJumpableBlock(String.valueOf(String.valueOf(((Block)w.getBody()).getBlockNumber())));
 		return res;
 	}
 	
@@ -523,7 +600,7 @@ public class ToAssembly
 		}
 		res+=parseExpressionTo(i.getCondition(),"r0");
 		res+="jne r0 J_S_LFB"+((Block)i.getTrueBody()).getBlockNumber()+"\n";
-		res+="jeq r0 J_S_LFB"+((Block)i.getFalseBody()).getBlockNumber()+"\n";
+		res+="jmp J_S_LFB"+((Block)i.getFalseBody()).getBlockNumber()+"\n";
 		res+=processBlock((Block)i.getTrueBody());
 		res+=processBlock((Block)i.getFalseBody());
 		return res;
@@ -533,7 +610,10 @@ public class ToAssembly
 			throws RamFullException, InterpretingError
 	{
 		String res="";
+		// head: std includes + prevent bad memory
+		// function start has to be provided
 		res+="#include<stddef.inc>\n";
+		res+="call start\nldi ff SFR\n";
 		
 		for (Function f: p.getFunctions())
 		{

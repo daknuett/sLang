@@ -1,32 +1,25 @@
 function void start()
 {
 	int f=45;
-	int b=foo(f)+f;
 	char chr='c';
+	int b;
 	__ASM__('nop');
 	HW_PR(b);
+	f=40;
+	foo(f);
 	halt();
 	return;
 }
 
 function int foo(int arg1)
 {
-	int bar=10;
-	if(arg1>5)
-	{
-		bar = arg1 + bar;
-	}
-	else
-	{
-		bar = bar - arg1 ;
-	}
-	int i=0;
-	while(i<(bar/2))
-	{
-		bar = bar + i;
-		i=i+1;
-	}
-	return bar;
+	int f = arg1;
+	HW_PR(f);
+	f=7+6+5;
+	HW_PR(f);
+	f=5*6*2;
+	HW_PR(f);
+	return 0;
 }
 
 

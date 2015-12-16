@@ -7,11 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 
-import slang.interpreter.RamFullException;
 import slang.interpreter.ToAssembly;
 import slang.lexer.Lexer;
 import slang.lexer.Token;
-import slang.parser.Function;
 import slang.parser.Program;
 import slang.parser.exceptions.SyntaxErrorException;
 
@@ -27,8 +25,8 @@ public class Start
 		{
 			Program p = Program.build(tokens.listIterator());
 			System.out.println("\n\n" + p);
-			Function f =  p.getFunctions()[0];
-			System.out.println(f.getBody().toString());
+			//Function f =  p.getFunctions()[0];
+			//System.out.println(f.getBody().toString());
 			ToAssembly t = new ToAssembly(1000,30);
 			System.out.println("\n\n\n");
 			try
@@ -37,7 +35,7 @@ public class Start
 			}
 			catch(Exception e)
 			{
-				System.out.println(e);
+				System.err.println(e);
 				e.printStackTrace();
 			}
 			

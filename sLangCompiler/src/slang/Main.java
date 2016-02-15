@@ -3,7 +3,6 @@ package slang;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
@@ -27,13 +26,13 @@ public class Main {
 			System.err.println("FATAL: need input & outputfile\n\nusage: sLangCompiler <input_file> <output_file> [options]\n");
 			System.exit(1);
 		}
-		String program = readFile(args[1]);
+		String program = readFile(args[0]);
 		Lexer lexer = new Lexer(program);
 		LinkedList<Token> tokens = lexer.lex();
 		try
 		{
 			Program p = Program.build(tokens.listIterator());
-			System.out.println("\n\n" + p);
+			//System.out.println("\n\n" + p);
 			//Function f =  p.getFunctions()[0];
 			//System.out.println(f.getBody().toString());
 			ToAssembly t = new ToAssembly(1000,30);
@@ -41,9 +40,9 @@ public class Main {
 			try
 			{
 				//System.out.println(t.processProgram(p));
-				BufferedWriter reader = Files.newBufferedWriter(Paths.get(Start.class.getProtectionDomain().getCodeSource().getLocation().toURI())
-						.resolve(args[2]));
+				BufferedWriter reader = Files.newBufferedWriter(Paths.get(args[1]));
 				reader.write(t.processProgram(p));
+				reader.close();
 			}
 			catch(Exception e)
 			{
@@ -62,8 +61,7 @@ public class Main {
 	{
 		StringBuilder program = new StringBuilder();
 
-		try(BufferedReader reader = Files.newBufferedReader(Paths.get(Start.class.getProtectionDomain().getCodeSource().getLocation().toURI())
-				.resolve(filename)))
+		try(BufferedReader reader = Files.newBufferedReader(Paths.get(filename)))
 		{
 			String line = reader.readLine();
 			while(line != null)
@@ -72,7 +70,7 @@ public class Main {
 				program.append('\n');
 				line = reader.readLine();
 			}
-		} catch(IOException | URISyntaxException e)
+		} catch(IOException e)
 		{
 			e.printStackTrace();
 		}

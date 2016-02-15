@@ -1,12 +1,11 @@
-#from memory import *
-#from processor import *
-import string
+import string,sys
 
 STD_INC_PATH="./"
 DEBUG=False
 
-""" use an assembly file to programm the flash. """
-
+def read_without_pattern(_str,pat1,pat2):
+	sub_str =  _str[:_str.index(pat1)]
+	return sub_str + _str[_str.index(pat2) + len(pat2) :]
 
 class Preprocessor(object):
 	def __init__(self,fname):
@@ -15,6 +14,11 @@ class Preprocessor(object):
 		self.symbols={}
 		self.unprocessed=self.in_file.read()
 		self.lines=self.unprocessed.split("\n")
+	def strip_comments2(self):
+		while("/*" in self.unprocessed and "*/" in self.unprocessed ):
+			self.unprocessed = read_without_pattern(self.unprocessed,"/*","*/")
+		self.lines=self.unprocessed.split("\n")
+				
 	def strip_comments(self):
 		new_lines=[]
 		for line in self.lines:
@@ -81,6 +85,7 @@ class Preprocessor(object):
 	def write(self):
 		self.out_file.write("\n".join(self.lines))
 	def do_all(self):
+		self.strip_comments2()
 		self.include_files()
 		self.process_definitions()
 		self.strip_comments()

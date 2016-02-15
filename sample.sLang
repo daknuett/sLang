@@ -1,6 +1,7 @@
-/* startfunction */
-#define __ASM__NOP  __ASM__("NOP")
-#define __local
+#define __ASM__NOP  __ASM__('nop')
+#define __local 
+
+/* foo */
 function void start()
 {
 	__local int f=45;
@@ -17,17 +18,16 @@ function int foo(int arg1)
 	int bar=10;
 	if(arg1>5)
 	{
-		bar += arg1;
+		bar = bar + arg1;
 	}
 	else
 	{
-		bar -= arg1;
+		bar = bar - arg1;
 	}
 	int i=0;
 	while(i<(bar/2))
 	{
-		bar += i;
-		i++;
+		bar = i + bar;
 	}
 	return bar;
 }
@@ -35,14 +35,13 @@ function int foo(int arg1)
 
 function void HW_PR(int arg)
 {
-	/* inline assembler muss wegen hardware access sein */
-	__ASM__("mov arg r0");
-	__ASM__("ldi 04 SFR");
+	__ASM__('mov arg r0');
+	__ASM__('ldi 04 SFR');
 	return;
 }
 
 function void halt()
 {
-	__ASM__("ldi ff SFR");
+	__ASM__('ldi ff SFR');
 	return;
 }

@@ -78,7 +78,8 @@ public class Program
 		}
 		if(tokens.hasNext())
 		{
-			throw new SyntaxErrorException("Unexpected ending", tokens.previous().getLinePos());
+
+				throw new SyntaxErrorException("Unexpected ending", tokens.previous().getLinePos());
 		}
 		
 		afterWorks();
